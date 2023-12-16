@@ -1,5 +1,4 @@
-
-package com.example.myapplication;
+package com.example.cashrich;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,21 +11,14 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toolbar;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,11 +32,13 @@ public class MainActivity extends AppCompatActivity {
     private CoinAdapter coinAdapter;
 
     private TextView itemCountTextView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Initialize UI components
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -54,21 +48,18 @@ public class MainActivity extends AppCompatActivity {
         coinAdapter = new CoinAdapter();
         recyclerView.setAdapter(coinAdapter);
 
+        // Execute the task to fetch coin data asynchronously
         new FetchCoinData().execute();
     }
 
-    private void setSupportActionBar(Toolbar toolbar) {
-    }
-
-
+    // AsyncTask to fetch coin data from CoinMarketCap API
     private class FetchCoinData extends AsyncTask<Void, Void, List<CoinInfo>> {
 
         @Override
         protected List<CoinInfo> doInBackground(Void... voids) {
             List<CoinInfo> coinInfoList = new ArrayList<>();
-            // Your API call and data retrieval logic here...
-            // Populating coinInfoList with CoinInfo objects
 
+            // API call to fetch cryptocurrency data
             OkHttpClient client = new OkHttpClient();
 
             Request request = new Request.Builder()
@@ -77,20 +68,24 @@ public class MainActivity extends AppCompatActivity {
                     .build();
 
             try {
+                // Execute the request and handle the response
                 Response response = client.newCall(request).execute();
                 if (response.isSuccessful()) {
+                    // Parse JSON response to extract coin information
                     String responseData = response.body().string();
                     JSONObject jsonObject = new JSONObject(responseData);
 
                     if (jsonObject.has("data")) {
                         JSONObject data = jsonObject.getJSONObject("data");
 
+                        // Iterate through selected coins (BTC, ETH, LTC)
                         for (String symbol : new String[]{"BTC", "ETH", "LTC"}) {
                             JSONObject coinData = data.getJSONObject(symbol);
                             double change24h = coinData.getJSONObject("quote").getJSONObject("USD").getDouble("percent_change_24h");
                             int rank = coinData.getInt("cmc_rank");
                             double priceUSD = coinData.getJSONObject("quote").getJSONObject("USD").getDouble("price");
 
+                            // Create a CoinInfo object and add it to the list
                             CoinInfo coinInfo = new CoinInfo(symbol, "24h Change: " + change24h + "%, Rank: " + rank + ", Price (USD): " + priceUSD, change24h);
                             coinInfoList.add(coinInfo);
                         }
@@ -100,26 +95,26 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-
             return coinInfoList;
         }
 
         @Override
         protected void onPostExecute(List<CoinInfo> coinInfoList) {
             super.onPostExecute(coinInfoList);
+            // Update the RecyclerView with the fetched data
             coinAdapter.setData(coinInfoList);
 
             // Update the item count TextView after setting the data
             itemCountTextView.setText("Count: " + coinInfoList.size());
-
         }
     }
 
+    // RecyclerView Adapter for displaying coin data
     private static class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder> {
 
         private List<CoinInfo> coinList = new ArrayList<>();
 
-
+        // Set data for the adapter
         public void setData(List<CoinInfo> coins) {
             coinList.clear();
             coinList.addAll(coins);
@@ -129,34 +124,38 @@ public class MainActivity extends AppCompatActivity {
         @NonNull
         @Override
         public CoinViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // Inflate the layout for a single coin item
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_coin, parent, false);
             return new CoinViewHolder(view);
         }
 
-
-
         @Override
         public void onBindViewHolder(@NonNull CoinViewHolder holder, int position) {
+            // Bind data to the ViewHolder
             CoinInfo coin = coinList.get(position);
             holder.bind(coin);
         }
 
         @Override
         public int getItemCount() {
+            // Return the number of items in the list
             return coinList.size();
         }
 
+        // ViewHolder class for a single coin item
         static class CoinViewHolder extends RecyclerView.ViewHolder {
             private TextView textSymbol, textChange;
             private ImageView imageArrow;
 
             public CoinViewHolder(@NonNull View itemView) {
                 super(itemView);
+                // Initialize UI components for the ViewHolder
                 textSymbol = itemView.findViewById(R.id.textSymbol);
                 textChange = itemView.findViewById(R.id.textChange);
                 imageArrow = itemView.findViewById(R.id.imageArrow);
             }
 
+            // Bind data to the ViewHolder
             public void bind(CoinInfo coin) {
                 textSymbol.setText(coin.getSymbol());
                 textChange.setText(coin.getChange());
@@ -179,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
         private String change;
         private double changeDirection; // Positive or negative change
 
+        // Constructor for creating a CoinInfo object
         public CoinInfo(String symbol, String change, double changeDirection) {
             this.symbol = symbol;
             this.change = change;
